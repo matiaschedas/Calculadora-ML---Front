@@ -60,12 +60,40 @@
   }
 
   /* --- Lógica de actualización --- */
+  function renderLoading() {
+    var h = $('#hero'); 
+    h.className = 'hero';
+    h.innerHTML = '<div class="lbl">Calculando...</div><div class="big" style="display: flex; align-items: center; justify-content: center; min-height: 50px;"><div class="spinner" style="margin-top: 0; width: 36px; height: 36px; border-width: 3px;"></div></div><div class="sub">Actualizando resultados...</div>';
+    
+    var ul = $('#breakdown');
+    ul.innerHTML = '<li><span>Calculando...</span><span class="v"><div class="spinner" style="width: 16px; height: 16px; border-width: 2px; margin: 0; display: inline-block;"></div></span></li>';
+    
+    var el = $('#deposit');
+    el.innerHTML = '<h2>Te acreditan</h2><div class="amount" style="color: var(--muted);">-</div><div class="when">Calculando...</div>';
+
+    var bar = $('#mobile-bar');
+    bar.hidden = false;
+    bar.className = 'mobile-bar';
+    $('#mb-label').textContent = 'Calculando...';
+    $('#mb-value').textContent = '...';
+
+    var tbl = $('#escenarios');
+    $('#escenarios-card').hidden = false;
+    tbl.innerHTML = '<thead><tr><th>Cuotas</th><th>Precio</th><th>Ganancia</th></tr></thead><tbody><tr><td colspan="3" style="text-align: center; padding: 15px;"><div class="spinner" style="margin: 0 auto; width: 24px; height: 24px; border-width: 2px;"></div></td></tr></tbody>';
+  }
+
   async function update() {
     var counter = ++updateCounter;
     applyVisibility();
     try {
       var inp = buildInp(state);
       var res = null;
+      var needsApi = (state.modo === 'objetivo') || (state.modo === 'precio' && num(state.precio) > 0);
+      
+      if (needsApi) {
+        renderLoading();
+      }
+
       if (state.modo === 'objetivo') res = await window.MatoliAPI.resolverPrecio(inp, objetivoDe(state));
       else if (num(state.precio) > 0) res = await window.MatoliAPI.calcular(inp, state.precio);
       
@@ -73,7 +101,13 @@
       lastResult = res;
       renderApp(res);
     } catch (err) {
-      if (counter === updateCounter) $('#hero').innerHTML = '<div class="sub">Error: ' + esc(err.message) + '</div>';
+      if (counter === updateCounter) {
+        $('#hero').innerHTML = '<div class="sub" style="color: var(--bad);">Error: ' + esc(err.message) + '</div>';
+        $('#breakdown').innerHTML = '<li><span>Error al calcular</span></li>';
+        $('#deposit').innerHTML = '';
+        $('#escenarios-card').hidden = true;
+        $('#mobile-bar').hidden = true;
+      }
     }
   }
 
@@ -219,6 +253,8 @@
     $('#productos-vacio').hidden = productos.length > 0;
     if (!productos.length) { tbl.innerHTML = ''; return; }
     
+    tbl.innerHTML = '<thead><tr><th>Producto</th><th>Precio</th><th>Ganancia</th><th>Acciones</th></tr></thead><tbody><tr><td colspan="4" style="text-align: center; padding: 20px;"><div class="spinner" style="margin: 0 auto; width: 30px; height: 30px; border-width: 3px;"></div></td></tr></tbody>';
+
     var rows = await Promise.all(productos.map(async function(p) {
       var res = await window.MatoliAPI.calcular(Object.assign({}, state, p.campos), p.campos.precio);
       return { p: p, res: res };
