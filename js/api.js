@@ -11,9 +11,10 @@
 window.MatoliAPI = (function () {
   'use strict';
 
-  // En producción (Netlify), Netlify redirigirá las llamadas de /api/* al servidor de .NET.
-  // En desarrollo local, se puede apuntar al localhost de .NET o usar el proxy local de Netlify CLI.
-  var API_BASE = 'https://calculadora-ml-back.onrender.com/api';
+  // Configuración automática para desarrollo local o producción
+  var API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5191/api'
+    : 'https://calculadora-ml-back.onrender.com/api';
 
   function request(endpoint, method, body) {
     var options = {

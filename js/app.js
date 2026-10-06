@@ -5,6 +5,7 @@
   var D = null; 
   var STORE_STATE = 'matoli.estado.v2';
   var STORE_PROD = 'matoli.productos.v1';
+  var STORE_PROFILE = 'matoli.perfil.v1';
 
   var updateCounter = 0;
   var PROFILE_KEYS = ['reputacion', 'condFiscal', 'ivaProducto', 'ivaIncluido', 'iibbPct', 'credDeb', 'adsPct', 'otrosPct', 'fijoMensual', 'unidadesMes'];
@@ -41,6 +42,23 @@
   function loadJSON(key) { try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
   function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { } }
 
+  function isProfileAtDefaults() {
+    var defaults = {
+      reputacion: 'sinrep', condFiscal: 'cf', ivaProducto: '21', ivaIncluido: true,
+      iibbPct: '0', credDeb: false, adsPct: '0', otrosPct: '0', fijoMensual: '0', unidadesMes: '0'
+    };
+    return PROFILE_KEYS.every(function(k) {
+      return String(state[k]) === String(defaults[k]);
+    });
+  }
+
+  function updateProfileWarning() {
+    var warningEl = $('#profile-warning');
+    if (warningEl) {
+      warningEl.hidden = !isProfileAtDefaults();
+    }
+  }
+
   /* --- Lógica de actualización --- */
   async function update() {
     var counter = ++updateCounter;
@@ -74,6 +92,7 @@
 
   /* --- Renderizado --- */
   function renderApp(res) {
+    updateProfileWarning();
     dynamicTexts(res);
     renderHero(res);
     renderAvisos(res);
@@ -139,6 +158,12 @@
 
   function renderAvisos(res) {
     var div = $('#avisos'); div.innerHTML = '';
+    if (isProfileAtDefaults()) {
+      var n = document.createElement('div');
+      n.className = 'note err';
+      n.textContent = '⚠️ Alerta de Seguridad: Tu perfil de vendedor no está configurado (tiene valores por defecto). Completá esta sección para obtener costos reales.';
+      div.appendChild(n);
+    }
     if (!res) return;
     res.avisos.forEach(function(a) { 
       var n = document.createElement('div'); n.className = 'note warn'; n.textContent = a; div.appendChild(n); 
@@ -157,9 +182,11 @@
   /* --- Categorías --- */
   function renderCategoriaHint(cat) {
     var el = $('#hint-categoria');
-    if (!cat) { el.textContent = 'Buscá tu categoría para mayor precisión.'; return; }
-    el.innerHTML = '<span class="cat-chip"><span>' + (cat.exacto ? '' : '≈ ') + fmtPct(cat.cargoPct) + '</span><button type="button" id="btn-cat-clear">×</button></span>';
-    $('#btn-cat-clear').onclick = function() { state.categoriaId = ''; renderCategoriaHint(null); update(); };
+    if (!cat) { el.textContent = 'Buscá tu categoría para aplicar el porcentaje correcto automáticamente.'; $('#f-cargoPct').value = state.cargoPct; return; }
+    
+    var fixedText = (cat.fixedFee !== undefined && cat.fixedFee !== null && cat.fixedFee > 0) ? ' + $ ' + cat.fixedFee + ' fijo por unidad' : '';
+    el.innerHTML = '<span class="cat-chip"><span>' + esc(cat.ruta) + ' — <strong>' + (cat.exacto ? '' : '≈ ') + fmtPct(cat.cargoPct) + fixedText + '</strong></span><button type="button" id="btn-cat-clear">×</button></span>';
+    $('#btn-cat-clear').onclick = function() { state.categoriaId = ''; state.cargoPct = '14'; renderCategoriaHint(null); syncInputs(); update(); };
   }
 
   async function initCategoria() {
@@ -169,7 +196,7 @@
       if (q.length < 2) { list.hidden = true; return; }
       var results = await window.MatoliAPI.buscarCategorias(q);
       list.innerHTML = results.map(function(r) {
-        return '<li data-id="'+r.id+'"><span>'+esc(r.leafName)+'</span><small>'+fmtPct(r.cargoPct)+'</small></li>';
+        return '<li data-id="'+r.id+'"><div class="nm"><strong>'+esc(r.leafName)+'</strong><small>'+esc(r.parentPath)+'</small></div><div class="pc'+(r.exacto?'':' est')+'">'+fmtPct(r.cargoPct)+'</div></li>';
       }).join('');
       list.hidden = false;
     });
@@ -177,7 +204,8 @@
       var li = e.target.closest('li');
       if (li) {
         var cat = await window.MatoliAPI.getCategoriaPorId(li.dataset.id);
-        state.categoriaId = cat.id; state.cargoPct = String(cat.cargoPct);
+        state.categoriaId = cat.id; 
+        state.cargoPct = String(cat.cargoPct);
         renderCategoriaHint(cat);
         list.hidden = true; input.value = '';
         syncInputs(); update();
@@ -199,14 +227,60 @@
     tbl.innerHTML = '<thead><tr><th>Producto</th><th>Precio</th><th>Ganancia</th><th>Acciones</th></tr></thead><tbody>' +
       rows.map(function(r) {
         return '<tr><td>'+esc(r.p.campos.nombre)+'</td><td>'+fmtMoney(r.res.precio)+'</td><td class="'+(r.res.ganancia>=0?'good':'bad')+'">'+signed(r.res.ganancia)+'</td>' +
-          '<td><button class="btn" onclick="MatoliApp.cargar(\''+r.p.id+'\')">Abrir</button></td></tr>';
+          '<td class="actions-cell">' +
+            '<button class="btn small" onclick="MatoliApp.cargar(\''+r.p.id+'\')">Abrir</button>' +
+            '<button class="btn small btn-danger" onclick="MatoliApp.eliminar(\''+r.p.id+'\')">Eliminar</button>' +
+          '</td></tr>';
       }).join('') + '</tbody>';
   }
 
   /* --- Tarifas --- */
-  function renderTarifas() {
+  async function renderTarifas() {
     var cont = $('#tarifas-content');
-    cont.innerHTML = '<div class="card"><h2>Tarifas Vigentes</h2><p>Actualizado: ' + fmtDate(D.meta.actualizado) + '</p></div>';
+    if (!D) return;
+
+    var html = '<div class="card"><h2>Tarifas Vigentes</h2><p>Actualizado: ' + fmtDate(D.meta.actualizado) + '</p></div>';
+    
+    // Categorías Summary
+    try {
+        var catMeta = await window.MatoliAPI.getMetaCategorias();
+        html += '<div class="card"><h3>Resumen de Cargos por Categoría</h3><ul>';
+        html += '<li>Categorías totales: ' + catMeta.exactas + '</li>';
+        html += '<li>Cargo mínimo: ' + fmtPct(catMeta.resumen.min) + '</li>';
+        html += '<li>Cargo mediano: ' + fmtPct(catMeta.resumen.mediana) + '</li>';
+        html += '<li>Cargo máximo: ' + fmtPct(catMeta.resumen.max) + '</li>';
+        html += '</ul><p class="hint">Debido a la gran cantidad de categorías, el cargo específico se calcula al buscar en la calculadora. El cargo puede incluir un monto fijo según la categoría.</p></div>';
+    } catch(e) {}
+
+    // Meta & Cargo por vender
+    html += '<div class="card"><h3>Parámetros Generales</h3><ul>';
+    html += '<li>Umbral Envío Gratis: ' + fmtMoney(D.meta.umbralEnvioGratis) + '</li>';
+    html += '<li>Cargo por Vender (Base): ' + D.cargoPorVender.defaultPct + '%</li>';
+    html += '<li>Rango de Cargo por Vender: ' + D.cargoPorVender.minPct + '% - ' + D.cargoPorVender.maxPct + '%</li>';
+    html += '</ul></div>';
+
+    // Cuotas
+    html += '<div class="card"><h3>Costo por Cuotas</h3><table class="table"><thead><tr><th>Opción</th><th>Cargo (%)</th></tr></thead><tbody>';
+    D.cuotas.forEach(function(c) {
+      html += '<tr><td>' + esc(c.label) + '</td><td>' + c.pct + '%</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    // Envío (Ejemplo)
+    html += '<div class="card"><h3>Costo de Envío (Ejemplo: Reputación Verde)</h3><div class="table-scroll"><table class="table"><thead><tr><th>Peso (kg)</th><th>Precio</th></tr></thead><tbody>';
+    D.envio.verde.slice(0, 5).forEach(function(row) {
+        html += '<tr><td>' + (row[0] ? row[0] + ' kg' : 'Más de 180 kg') + '</td><td>' + fmtMoney(row[1]) + '</td></tr>';
+    });
+    html += '</tbody></table></div><p class="hint">El costo de envío varía según reputación, categoría y peso. Los valores exactos se calculan automáticamente en la calculadora.</p></div>';
+
+    // Full
+    html += '<div class="card"><h3>Full · Almacenamiento</h3><table class="table"><thead><tr><th>Tamaño</th><th>Tarifa diaria</th></tr></thead><tbody>';
+    D.full.almacenamientoDiario.forEach(function(f) {
+      html += '<tr><td>' + esc(f.label) + '</td><td>' + f.tarifa + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    cont.innerHTML = html;
   }
 
   /* --- Tabs --- */
@@ -214,6 +288,7 @@
     $$('.tabpanel').forEach(function(p) { p.hidden = p.id !== 'tab-' + name; });
     $$('.tab').forEach(function(b) { b.setAttribute('aria-selected', b.dataset.tab === name); });
     if (name === 'productos') renderProductos();
+    if (name === 'tarifas') renderTarifas();
     if (!fromHash) location.hash = name;
   }
 
@@ -232,13 +307,32 @@
 
       D = await window.MatoliAPI.getTarifas();
       initControls();
+
+      // Cargar estado previo y aplicar perfil guardado
+      var savedState = loadJSON(STORE_STATE);
+      var savedProfile = loadJSON(STORE_PROFILE);
+      if (savedState) {
+        state = Object.assign({}, DEFAULTS, savedState);
+      }
+      if (savedProfile) {
+        PROFILE_KEYS.forEach(function(k) {
+          if (savedProfile[k] !== undefined) {
+            state[k] = savedProfile[k];
+          }
+        });
+      }
+
+      persistProductos();
       syncInputs();
       bindControls();
       initCategoria();
       if (state.categoriaId) {
         var c = await window.MatoliAPI.getCategoriaPorId(state.categoriaId);
         renderCategoriaHint(c);
+      } else {
+        renderCategoriaHint(null);
       }
+      updateProfileWarning();
       update();
     } catch(e) { 
       var loader = document.getElementById('loader');
@@ -269,14 +363,107 @@
   function bindControls() {
     $$('[data-f]').forEach(function(el) {
       el.addEventListener('input', function() {
-        state[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value;
+        var key = el.dataset.f;
+        state[key] = el.type === 'checkbox' ? el.checked : el.value;
+        
+        // Guardar el perfil por separado si el input que cambió es parte del perfil
+        if (PROFILE_KEYS.indexOf(key) !== -1) {
+          var profileObj = {};
+          PROFILE_KEYS.forEach(function(pk) {
+            profileObj[pk] = state[pk];
+          });
+          saveJSON(STORE_PROFILE, profileObj);
+        }
+        
         saveJSON(STORE_STATE, state);
+        updateProfileWarning();
         update();
       });
     });
     $$('.tab').forEach(function(b) { b.onclick = function() { switchTab(b.dataset.tab); }; });
-    $('#btn-limpiar').onclick = function() { state = Object.assign({}, DEFAULTS); editingId = null; syncInputs(); update(); };
+    $('#btn-limpiar').onclick = function() {
+      var savedProfile = loadJSON(STORE_PROFILE);
+      var newState = Object.assign({}, DEFAULTS);
+      if (savedProfile) {
+        PROFILE_KEYS.forEach(function(k) {
+          if (savedProfile[k] !== undefined) {
+            newState[k] = savedProfile[k];
+          }
+        });
+      }
+      state = newState;
+      editingId = null;
+      syncInputs();
+      updateProfileWarning();
+      update();
+    };
     $('#mb-go').onclick = function() { $('#results').scrollIntoView({ behavior: 'smooth' }); };
+    
+    // Botón Guardar con validaciones de UX
+    $('#btn-guardar').onclick = function() {
+      var campos = buildInp(state);
+      
+      if (!campos.nombre || campos.nombre.trim() === '') {
+        showModal({
+          icon: '⚠️',
+          title: 'Falta información',
+          message: 'Por favor, ponéle un nombre al producto para identificarlo.',
+          okText: 'Entendido',
+          onOk: function() { $('#f-nombre').focus(); }
+        });
+        return;
+      }
+      if (!campos.costo || campos.costo <= 0) {
+        showModal({
+          icon: '⚠️',
+          title: 'Falta información',
+          message: 'Por favor, ingresá el costo del producto.',
+          okText: 'Entendido',
+          onOk: function() { $('#f-costo').focus(); }
+        });
+        return;
+      }
+      if (state.modo === 'precio' && (!campos.precio || campos.precio <= 0)) {
+        showModal({
+          icon: '⚠️',
+          title: 'Falta información',
+          message: 'Ingresá el precio de venta para poder calcular.',
+          okText: 'Entendido',
+          onOk: function() { $('#f-precio').focus(); }
+        });
+        return;
+      }
+
+      if (editingId) {
+        var idx = productos.findIndex(function(p) { return p.id === editingId; });
+        if (idx !== -1) productos[idx].campos = Object.assign({}, campos);
+        showModal({
+          icon: '🎉',
+          title: '¡Producto actualizado!',
+          message: 'Los cambios se guardaron correctamente en "Mis productos".',
+          okText: 'Aceptar'
+        });
+      } else {
+        productos.push({ id: Date.now().toString(), campos: Object.assign({}, campos) });
+        showModal({
+          icon: '🎉',
+          title: '¡Producto guardado!',
+          message: 'El producto ya está disponible en la sección "Mis productos".',
+          okText: 'Ver mis productos',
+          onOk: function() {
+            switchTab('productos');
+          }
+        });
+      }
+      
+      persistProductos();
+      editingId = null;
+    };
+
+    // Botones de Exportar/Importar
+    $('#btn-csv').onclick = exportarProductos;
+    $('#btn-backup').onclick = exportarProductos;
+    $('#file-import').onchange = importarProductos;
   }
 
   function applyVisibility() {
@@ -286,17 +473,169 @@
     });
   }
 
-  function persistProductos() { saveJSON(STORE_PROD, productos); $('#count-productos').textContent = productos.length; }
+  function persistProductos() { 
+    saveJSON(STORE_PROD, productos); 
+    var countEl = $('#count-productos');
+    if (countEl) countEl.textContent = productos.length; 
+    renderProductos();
+  }
+
+  function eliminarProducto(id) {
+    showModal({
+      icon: '🗑️',
+      title: 'Eliminar producto',
+      message: '¿Estás seguro de que querés eliminar este producto de tus guardados?',
+      okText: 'Sí, eliminar',
+      showCancel: true,
+      onOk: function() {
+        productos = productos.filter(function(p) { return p.id !== id; });
+        persistProductos();
+        showModal({
+          icon: '✅',
+          title: '¡Eliminado!',
+          message: 'El producto fue eliminado correctamente.',
+          okText: 'Aceptar'
+        });
+      }
+    });
+  }
+
+  function showModal(opts) {
+    var oldOverlay = $('.matoli-overlay');
+    if (oldOverlay) oldOverlay.remove();
+    var oldPopup = $('.matoli-popup');
+    if (oldPopup) oldPopup.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'matoli-overlay';
+    
+    var popup = document.createElement('div');
+    popup.className = 'matoli-popup';
+    
+    var html = '';
+    if (opts.icon) html += '<div class="popup-icon">' + opts.icon + '</div>';
+    if (opts.title) html += '<h3 class="popup-title">' + esc(opts.title) + '</h3>';
+    if (opts.message) html += '<p class="popup-body">' + esc(opts.message) + '</p>';
+    
+    html += '<div class="popup-actions">';
+    if (opts.showCancel) {
+      html += '<button type="button" class="btn" id="modal-cancel">Cancelar</button>';
+    }
+    html += '<button type="button" class="btn primary" id="modal-ok">' + (opts.okText || 'Aceptar') + '</button>';
+    html += '</div>';
+
+    popup.innerHTML = html;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+
+    setTimeout(function() {
+      overlay.classList.add('active');
+      popup.classList.add('active');
+      $('#modal-ok').focus();
+    }, 10);
+
+    function closeModal() {
+      overlay.classList.remove('active');
+      popup.classList.remove('active');
+      setTimeout(function() {
+        overlay.remove();
+        popup.remove();
+      }, 250);
+    }
+
+    $('#modal-ok').onclick = function() {
+      closeModal();
+      if (opts.onOk) opts.onOk();
+    };
+
+    if (opts.showCancel) {
+      $('#modal-cancel').onclick = function() {
+        closeModal();
+        if (opts.onCancel) opts.onCancel();
+      };
+    }
+
+    overlay.onclick = function(e) {
+      if (e.target === overlay && opts.allowOverlayClick) {
+        closeModal();
+        if (opts.onCancel) opts.onCancel();
+      }
+    };
+  }
+
+  function toast(m) { 
+    showModal({
+      icon: 'ℹ️',
+      title: 'Aviso',
+      message: m,
+      okText: 'Entendido'
+    });
+  }
+
+  function exportarProductos() {
+    var data = JSON.stringify(productos);
+    var blob = new Blob([data], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'matoli-productos.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importarProductos(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var imported = JSON.parse(e.target.result);
+        if (Array.isArray(imported)) {
+          productos = imported;
+          persistProductos();
+          toast('Productos importados correctamente.');
+        } else {
+          toast('Error: El archivo no tiene el formato correcto.');
+        }
+      } catch (err) {
+        toast('Error al importar: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
   
   function toast(m) { alert(m); } // Simplificado para este ejemplo
 
   // Exponer algunas funciones globalmente para los onclick de la tabla
   window.MatoliApp = {
+    eliminar: eliminarProducto,
     cargar: function(id) {
       var p = productos.find(function(x){return x.id === id;});
-      if(p) { state = Object.assign({}, DEFAULTS, p.campos); editingId = id; syncInputs(); update(); switchTab('calc'); }
+      if(p) { 
+        var savedProfile = loadJSON(STORE_PROFILE);
+        state = Object.assign({}, DEFAULTS, p.campos); 
+        if (savedProfile) {
+          PROFILE_KEYS.forEach(function(k) {
+            if (savedProfile[k] !== undefined) {
+              state[k] = savedProfile[k];
+            }
+          });
+        }
+        editingId = id; 
+        syncInputs(); 
+        updateProfileWarning();
+        update(); 
+        switchTab('calc'); 
+      }
     }
   };
+
+  // Actualizar contador apenas cargue el DOM por si la API tarda en responder
+  document.addEventListener('DOMContentLoaded', function() {
+    var countEl = $('#count-productos');
+    if (countEl) countEl.textContent = productos.length;
+  });
 
   init();
 })();

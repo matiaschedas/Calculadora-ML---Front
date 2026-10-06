@@ -124,7 +124,7 @@
         <div class="card" data-show="canal=ml">
           <h2>Publicación en Mercado Libre</h2>
           <div class="grid2">
-            <div class="field full" id="field-categoria" hidden>
+            <div class="field full" id="field-categoria">
               <label for="f-categoria">Categoría del producto</label>
               <div class="combo">
                 <input id="f-categoria" type="search" role="combobox" aria-expanded="false" aria-controls="cat-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Escribí para buscar: fundas, zapatillas, auriculares…">
@@ -134,9 +134,9 @@
             </div>
             <div class="field">
               <label for="f-cargoPct">Cargo por vender (%)</label>
-              <div class="money"><span>%</span><input id="f-cargoPct" type="number" inputmode="decimal" min="0" max="60" step="any" data-f="cargoPct"></div>
+              <div class="money"><span>%</span><input id="f-cargoPct" type="number" inputmode="decimal" min="0" max="60" step="any" data-f="cargoPct" readonly></div>
               <div class="presets" id="presets-cargo"></div>
-              <small class="hint" id="hint-cargo"></small>
+              <small class="hint" id="hint-cargo">Se completa automáticamente al elegir la categoría.</small>
             </div>
             <div class="field">
               <label for="f-cuotas">Cuotas</label>
@@ -247,6 +247,7 @@
         <!-- ---------- Perfil ---------- -->
         <details class="card profile" open>
           <summary><h2>Tu perfil de vendedor</h2><span class="opt">se guarda en tu navegador</span></summary>
+          <div id="profile-warning" class="note warn" hidden>⚠️ Tu perfil de vendedor está con los valores por default. Sección no completa: configurá tus datos para obtener cálculos precisos.</div>
           <div class="grid2">
             <div class="field" data-show="canal=ml">
               <label for="f-reputacion">Reputación</label>
