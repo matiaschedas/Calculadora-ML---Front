@@ -220,6 +220,15 @@
   /* --- Inicialización --- */
   async function init() {
     try {
+      // Intentar despertar al backend primero
+      try {
+        await fetch(window.MatoliAPI.getBaseUrl() + '/wake');
+      } catch (e) { console.log("No se pudo despertar (quizás ya está despierto)"); }
+      
+      // Ocultar el loader
+      var loader = document.getElementById('loader');
+      if (loader) loader.style.display = 'none';
+
       D = await window.MatoliAPI.getTarifas();
       initControls();
       syncInputs();
@@ -230,7 +239,11 @@
         renderCategoriaHint(c);
       }
       update();
-    } catch(e) { toast('Error de conexión'); }
+    } catch(e) { 
+      var loader = document.getElementById('loader');
+      if (loader) loader.innerHTML = '<h1>Error de conexión</h1>';
+      toast('Error de conexión'); 
+    }
   }
 
   function initControls() {
