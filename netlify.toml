@@ -1,5 +1,5 @@
 [[redirects]]
   from = "/api/*"
-  to = "TU_BACKEND_URL_DE_NET_AQUI/:splat"
+  to = "https://calculadora-ml-back.onrender.com/:splat"
   status = 200
   force = true
