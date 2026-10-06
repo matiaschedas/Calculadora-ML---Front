@@ -222,8 +222,9 @@
     try {
       // Intentar despertar al backend primero
       try {
+        console.log("Intentando despertar backend en:", window.MatoliAPI.getBaseUrl());
         await fetch(window.MatoliAPI.getBaseUrl() + '/wake');
-      } catch (e) { console.log("No se pudo despertar (quizás ya está despierto)"); }
+      } catch (e) { console.log("Error al despertar:", e); }
       
       // Ocultar el loader
       var loader = document.getElementById('loader');
