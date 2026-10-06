@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MATOLI · Calculadora de costos para Mercado Libre</title>
+  <meta name="description" content="Calculá cuánto ganás por producto en Mercado Libre y Mercado Pago: cargo por vender, cuotas, envío, impuestos y precio sugerido. Tarifas de Argentina.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ffe600'/%3E%3Ctext x='16' y='23' font-family='Arial' font-size='20' font-weight='800' text-anchor='middle' fill='%231c2230'%3EM%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <div>
+        <strong>MATOLI</strong>
+        <span class="brand-sub">Calculadora de costos · Mercado Libre y Mercado Pago</span>
+      </div>
+    </div>
+    <span class="badge" title="Fecha de la última verificación de tarifas contra las páginas oficiales">Tarifas al <span id="vigencia"></span></span>
+  </div>
+  <nav class="wrap tabs" role="tablist" aria-label="Secciones">
+    <button class="tab" role="tab" id="tabbtn-calc" aria-controls="tab-calc" aria-selected="true" data-tab="calc">Calculadora</button>
+    <button class="tab" role="tab" id="tabbtn-productos" aria-controls="tab-productos" aria-selected="false" data-tab="productos">Mis productos <span class="count" id="count-productos">0</span></button>
+    <button class="tab" role="tab" id="tabbtn-tarifas" aria-controls="tab-tarifas" aria-selected="false" data-tab="tarifas">Tarifas</button>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <!-- ============================ CALCULADORA ============================ -->
+  <section id="tab-calc" class="tabpanel" role="tabpanel" aria-labelledby="tabbtn-calc">
+    <div class="layout">
+
+      <div class="col-form">
+
+        <div class="card">
+          <h2>Canal de venta</h2>
+          <div class="segmented" role="radiogroup" aria-label="Canal de venta">
+            <label><input type="radio" name="canal" data-f="canal" value="ml"><span>Mercado Libre</span></label>
+            <label><input type="radio" name="canal" data-f="canal" value="mp"><span>Venta directa (Mercado Pago)</span></label>
+          </div>
+          <p class="hint" data-show="canal=mp">Para vender por tu tienda, WhatsApp o redes y cobrar con Link de pago. Las ventas dentro de Mercado Libre no pagan este costo.</p>
+        </div>
+
+        <div class="card">
+          <h2>Tu producto</h2>
+          <div class="grid2">
+            <div class="field full">
+              <label for="f-nombre">Nombre <span class="opt">(opcional)</span></label>
+              <input id="f-nombre" type="text" data-f="nombre" placeholder="Ej.: Funda silicona iPhone 15" maxlength="80" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="f-costo" id="lbl-costo">Costo del producto</label>
+              <div class="money"><span>$</span><input id="f-costo" type="number" inputmode="decimal" min="0" step="any" data-f="costo" placeholder="0"></div>
+              <small class="hint" data-show="condFiscal=ri">Cargalo sin IVA (neto).</small>
+            </div>
+            <div class="field">
+              <label for="f-extras">Embalaje y otros costos <span class="opt">(por unidad)</span></label>
+              <div class="money"><span>$</span><input id="f-extras" type="number" inputmode="decimal" min="0" step="any" data-f="extras" placeholder="0"></div>
+            </div>
+            <div class="field" data-show="canal=ml">
+              <label for="f-condicion">Condición</label>
+              <select id="f-condicion" data-f="condicion">
+                <option value="nuevo">Nuevo</option>
+                <option value="usado">Usado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>¿Qué querés calcular?</h2>
+          <div class="segmented" role="radiogroup" aria-label="Modo de cálculo">
+            <label><input type="radio" name="modo" data-f="modo" value="precio"><span>Tengo un precio → ver mi ganancia</span></label>
+            <label><input type="radio" name="modo" data-f="modo" value="objetivo"><span>Quiero ganar X → calcular el precio</span></label>
+          </div>
+
+          <div class="grid2 mt" data-show="modo=precio">
+            <div class="field">
+              <label for="f-precio">Precio de venta</label>
+              <div class="money"><span>$</span><input id="f-precio" type="number" inputmode="decimal" min="0" step="any" data-f="precio" placeholder="0"></div>
+              <small class="hint" data-show="condFiscal=ri">Precio final al público, con IVA.</small>
+            </div>
+          </div>
+
+          <div class="grid2 mt" data-show="modo=objetivo">
+            <div class="field">
+              <label for="f-objTipo">Quiero asegurar</label>
+              <select id="f-objTipo" data-f="objetivoTipo">
+                <option value="margen">Un margen sobre la venta neta (%)</option>
+                <option value="ganancia">Una ganancia fija por unidad ($)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-objValor" id="lbl-objValor">Margen objetivo</label>
+              <div class="money"><span id="objUnidad">%</span><input id="f-objValor" type="number" inputmode="decimal" min="0" step="any" data-f="objetivoValor" placeholder="20"></div>
+            </div>
+            <div class="field full">
+              <label for="f-redondeo">Redondear el precio</label>
+              <select id="f-redondeo" data-f="redondeo">
+                <option value="entero">Al peso (sin decimales)</option>
+                <option value="10">Hacia arriba, múltiplo de $10</option>
+                <option value="100">Hacia arriba, múltiplo de $100</option>
+                <option value="990">Terminado en 990 (ej.: $12.990)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------- Mercado Libre ---------- -->
+        <div class="card" data-show="canal=ml">
+          <h2>Publicación en Mercado Libre</h2>
+          <div class="grid2">
+            <div class="field full" id="field-categoria" hidden>
+              <label for="f-categoria">Categoría del producto</label>
+              <div class="combo">
+                <input id="f-categoria" type="search" role="combobox" aria-expanded="false" aria-controls="cat-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Escribí para buscar: fundas, zapatillas, auriculares…">
+                <ul id="cat-list" class="combo-list" role="listbox" hidden></ul>
+              </div>
+              <small class="hint" id="hint-categoria"></small>
+            </div>
+            <div class="field">
+              <label for="f-cargoPct">Cargo por vender (%)</label>
+              <div class="money"><span>%</span><input id="f-cargoPct" type="number" inputmode="decimal" min="0" max="60" step="any" data-f="cargoPct"></div>
+              <div class="presets" id="presets-cargo"></div>
+              <small class="hint" id="hint-cargo"></small>
+            </div>
+            <div class="field">
+              <label for="f-cuotas">Cuotas</label>
+              <select id="f-cuotas" data-f="cuotas"></select>
+              <small class="hint">El costo por ofrecer cuotas se suma al cargo por vender.</small>
+            </div>
+            <div class="field full">
+              <label for="f-logistica">Logística de envío</label>
+              <select id="f-logistica" data-f="logistica">
+                <option value="ml">Mercado Envíos (correo, colecta o puntos de despacho)</option>
+                <option value="full">Full (tu stock está en depósitos de Mercado Libre)</option>
+                <option value="flex">Flex (entregás vos en tu zona)</option>
+                <option value="propio">Por mi cuenta / acuerdo con el comprador / retiro</option>
+              </select>
+            </div>
+            <div class="field full" id="field-envioGratis">
+              <label class="check"><input type="checkbox" data-f="envioGratis"> <span>Ofrezco envío gratis</span></label>
+              <small class="hint" id="hint-envio"></small>
+            </div>
+          </div>
+
+          <div data-show="logistica=ml|full">
+            <h3>Paquete (ya embalado)</h3>
+            <div class="grid4">
+              <div class="field"><label for="f-peso">Peso (kg)</label><input id="f-peso" type="number" inputmode="decimal" min="0" step="any" data-f="peso" placeholder="0,5"></div>
+              <div class="field"><label for="f-largo">Largo (cm)</label><input id="f-largo" type="number" inputmode="decimal" min="0" step="any" data-f="largo" placeholder="0"></div>
+              <div class="field"><label for="f-ancho">Ancho (cm)</label><input id="f-ancho" type="number" inputmode="decimal" min="0" step="any" data-f="ancho" placeholder="0"></div>
+              <div class="field"><label for="f-alto">Alto (cm)</label><input id="f-alto" type="number" inputmode="decimal" min="0" step="any" data-f="alto" placeholder="0"></div>
+            </div>
+            <p class="hint" id="peso-info"></p>
+            <div class="field mt" data-show="reputacion=verde|sinrep">
+              <label for="f-tablaEnvio">Tabla de envío</label>
+              <select id="f-tablaEnvio" data-f="tablaEnvio">
+                <option value="general">General</option>
+                <option value="zapatillas">Moda · Zapatillas (desde $33.000)</option>
+              </select>
+              <small class="hint">Botas, mochilas, camperas, camisetas de fútbol y sandalias también tienen tablas propias que no están cargadas: usá "Valores manuales".</small>
+            </div>
+          </div>
+
+          <div data-show="logistica=flex">
+            <h3>Flex</h3>
+            <div class="grid2">
+              <div class="field">
+                <label for="f-flexZona">Zona de entrega</label>
+                <select id="f-flexZona" data-f="flexZona"></select>
+              </div>
+              <div class="field">
+                <label for="f-flexCosto">Tu costo de entrega (por envío)</label>
+                <div class="money"><span>$</span><input id="f-flexCosto" type="number" inputmode="decimal" min="0" step="any" data-f="flexCostoPropio" placeholder="0"></div>
+              </div>
+            </div>
+            <p class="hint" id="hint-flex"></p>
+          </div>
+
+          <div data-show="logistica=propio">
+            <h3>Envío por tu cuenta</h3>
+            <div class="field">
+              <label for="f-envioPropio">Costo de envío que absorbés</label>
+              <div class="money"><span>$</span><input id="f-envioPropio" type="number" inputmode="decimal" min="0" step="any" data-f="envioPropio" placeholder="0"></div>
+              <small class="hint">Solo se descuenta si ofrecés envío gratis. Si el comprador lo paga o retira, queda en $0.</small>
+            </div>
+          </div>
+
+          <details class="manual">
+            <summary>Valores manuales <span class="opt">(opcional)</span></summary>
+            <p class="hint">Si el Simulador de costos de Mercado Libre te muestra otro número, cargalo acá y reemplaza al de la tabla.</p>
+            <div class="grid2">
+              <div class="field" data-show="logistica=ml|full">
+                <label for="f-envioManual">Costo del envío gratis</label>
+                <div class="money"><span>$</span><input id="f-envioManual" type="number" inputmode="decimal" min="0" step="any" data-f="envioManual" placeholder="Automático"></div>
+              </div>
+              <div class="field">
+                <label for="f-fijoManual">Costo fijo por unidad vendida</label>
+                <div class="money"><span>$</span><input id="f-fijoManual" type="number" inputmode="decimal" min="0" step="any" data-f="fijoManual" placeholder="Automático"></div>
+              </div>
+              <div class="field" data-show="logistica=flex">
+                <label for="f-flexBonif">Bonificación Flex</label>
+                <div class="money"><span>$</span><input id="f-flexBonif" type="number" inputmode="decimal" min="0" step="any" data-f="flexBonifManual" placeholder="Automático"></div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- ---------- Mercado Pago ---------- -->
+        <div class="card" data-show="canal=mp">
+          <h2>Cobro con Mercado Pago</h2>
+          <div class="grid2">
+            <div class="field">
+              <label for="f-mpProv">Provincia de tu domicilio</label>
+              <select id="f-mpProv" data-f="mpProvincia"></select>
+            </div>
+            <div class="field">
+              <label for="f-mpPlazo">¿Cuándo querés tener el dinero?</label>
+              <select id="f-mpPlazo" data-f="mpPlazo"></select>
+            </div>
+            <div class="field">
+              <label for="f-envioMP">Costo de envío que absorbés</label>
+              <div class="money"><span>$</span><input id="f-envioMP" type="number" inputmode="decimal" min="0" step="any" data-f="envioMP" placeholder="0"></div>
+            </div>
+            <div class="field">
+              <label class="check mt2"><input type="checkbox" data-f="mpExtranjera"> <span>Tarjeta extranjera o Sucrédito (+3% del costo)</span></label>
+            </div>
+          </div>
+          <p class="hint">Tarifas de Link de pago, con todos los medios de pago. No incluyen IVA: se suma 21%.</p>
+        </div>
+
+        <!-- ---------- Perfil ---------- -->
+        <details class="card profile" open>
+          <summary><h2>Tu perfil de vendedor</h2><span class="opt">se guarda en tu navegador</span></summary>
+          <div class="grid2">
+            <div class="field" data-show="canal=ml">
+              <label for="f-reputacion">Reputación</label>
+              <select id="f-reputacion" data-f="reputacion">
+                <option value="sinrep">Sin reputación (recién empezás)</option>
+                <option value="verde">MercadoLíder o verde</option>
+                <option value="amarilla">Amarilla</option>
+                <option value="roja">Naranja o roja</option>
+              </select>
+              <small class="hint">Define el descuento en el envío gratis y cuándo te liberan el dinero.</small>
+            </div>
+            <div class="field">
+              <label for="f-condFiscal">Condición fiscal</label>
+              <select id="f-condFiscal" data-f="condFiscal">
+                <option value="cf">Consumidor final (sin inscripción)</option>
+                <option value="mono">Monotributista</option>
+                <option value="ri">Responsable inscripto</option>
+              </select>
+              <small class="hint" data-show="condFiscal=cf">Mercado Libre no te retira impuestos mientras figures así. Si vendés seguido, consultá con un contador si te corresponde inscribirte.</small>
+            </div>
+            <div class="field" data-show="condFiscal=ri">
+              <label for="f-ivaProducto">IVA de tus productos</label>
+              <select id="f-ivaProducto" data-f="ivaProducto">
+                <option value="21">21%</option>
+                <option value="10.5">10,5%</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-iibb">Ingresos Brutos (%)</label>
+              <div class="money"><span>%</span><input id="f-iibb" type="number" inputmode="decimal" min="0" step="any" data-f="iibbPct"></div>
+              <small class="hint">Tu alícuota real (provincia y actividad). Mercado Libre la retiene como anticipo.</small>
+            </div>
+            <div class="field">
+              <label for="f-ads">Publicidad (% de la venta)</label>
+              <div class="money"><span>%</span><input id="f-ads" type="number" inputmode="decimal" min="0" step="any" data-f="adsPct"></div>
+              <small class="hint">Product Ads u otra publicidad.</small>
+            </div>
+            <div class="field">
+              <label for="f-otros">Devoluciones y otros (% de la venta)</label>
+              <div class="money"><span>%</span><input id="f-otros" type="number" inputmode="decimal" min="0" step="any" data-f="otrosPct"></div>
+              <small class="hint">Reclamos, devoluciones, comisiones de terceros.</small>
+            </div>
+            <div class="field">
+              <label for="f-fijoMes">Gastos fijos por mes</label>
+              <div class="money"><span>$</span><input id="f-fijoMes" type="number" inputmode="decimal" min="0" step="any" data-f="fijoMensual"></div>
+              <small class="hint">Cuota de monotributo, contador, alquiler, etc.</small>
+            </div>
+            <div class="field">
+              <label for="f-unidMes">Unidades que vendés por mes</label>
+              <input id="f-unidMes" type="number" inputmode="numeric" min="0" step="1" data-f="unidadesMes">
+              <small class="hint" id="hint-fijos"></small>
+            </div>
+            <div class="field full">
+              <label class="check"><input type="checkbox" data-f="credDeb"> <span>Pago el impuesto a los créditos y débitos (personas jurídicas, 1,2%)</span></label>
+            </div>
+            <div class="field full" data-show="canal=ml">
+              <label class="check"><input type="checkbox" data-f="ivaIncluido"> <span>Los cargos de Mercado Libre ya incluyen IVA</span></label>
+              <small class="hint">Verificado en el <a href="https://www.mercadolibre.com.ar/simulador-de-costos" target="_blank" rel="noopener">Simulador de costos</a> oficial: Mercado Libre descuenta exactamente el porcentaje publicado, sin sumar IVA aparte. Destildá la opción solo si tu factura te muestra un IVA adicional sobre los cargos.</small>
+            </div>
+          </div>
+        </details>
+
+      </div>
+
+      <!-- ============================ RESULTADOS ============================ -->
+      <aside class="results" id="results" aria-live="polite" aria-label="Resultado del cálculo">
+        <div class="hero" id="hero"></div>
+        <div id="avisos"></div>
+        <div class="card flat">
+          <h2>Desglose por unidad</h2>
+          <ul class="breakdown" id="breakdown"></ul>
+        </div>
+        <div class="card flat" id="deposit"></div>
+        <div class="actions">
+          <button type="button" class="btn primary" id="btn-guardar">Guardar en Mis productos</button>
+          <button type="button" class="btn" id="btn-limpiar">Producto nuevo</button>
+        </div>
+        <div class="card flat" id="escenarios-card" data-show="canal=ml">
+          <h2 id="escenarios-title">Comparar cuotas</h2>
+          <div class="table-scroll"><table class="table small" id="escenarios"></table></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============================ MIS PRODUCTOS ============================ -->
+  <section id="tab-productos" class="tabpanel" role="tabpanel" aria-labelledby="tabbtn-productos" hidden>
+    <div class="card">
+      <div class="row-between">
+        <div>
+          <h2>Mis productos</h2>
+          <p class="hint">Se recalculan con tu perfil de vendedor actual. Se guardan solo en este navegador: hacé un respaldo si querés pasarlos a otra computadora.</p>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn" id="btn-csv">Exportar CSV</button>
+          <button type="button" class="btn" id="btn-backup">Respaldo (JSON)</button>
+          <label class="btn" for="file-import">Importar respaldo</label>
+          <input type="file" id="file-import" accept="application/json,.json" hidden>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="table" id="tabla-productos"></table>
+      </div>
+      <p class="empty" id="productos-vacio">Todavía no guardaste productos. Cargá uno en la calculadora y tocá "Guardar en Mis productos".</p>
+    </div>
+  </section>
+
+  <!-- ============================ TARIFAS ============================ -->
+  <section id="tab-tarifas" class="tabpanel" role="tabpanel" aria-labelledby="tabbtn-tarifas" hidden>
+    <div id="tarifas-content"></div>
+  </section>
+
+</main>
+
+<div class="mobile-bar" id="mobile-bar" hidden>
+  <div><span class="mb-label" id="mb-label"></span><strong id="mb-value"></strong></div>
+  <button type="button" class="btn small" id="mb-go">Ver desglose</button>
+</div>
+
+<footer class="wrap footer">
+  <p>Cálculo estimado con tarifas públicas de Mercado Libre y Mercado Pago Argentina verificadas el <span id="vigencia2"></span>. Mercado Libre puede cambiarlas sin aviso y tu cuenta puede tener condiciones particulares: antes de publicar, confirmá con el <a href="https://www.mercadolibre.com.ar/simulador-de-costos" target="_blank" rel="noopener">Simulador de costos</a> oficial. No es asesoramiento contable.</p>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
