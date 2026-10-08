@@ -369,6 +369,9 @@
         await fetch(window.MatoliAPI.getBaseUrl() + '/wake');
       } catch (e) { console.log("Error al despertar:", e); }
       
+      // Inicializar tema
+      initTheme();
+
       // Ocultar el loader
       var loader = document.getElementById('loader');
       if (loader) loader.style.display = 'none';
@@ -408,6 +411,31 @@
       if (loader) loader.innerHTML = '<h1>Error de conexión</h1>';
       toast('Error de conexión'); 
     }
+  }
+
+  function initTheme() {
+    var btn = $('#btn-theme');
+    var dark = localStorage.getItem('matoli.theme') === 'dark' || 
+               (!localStorage.getItem('matoli.theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    function applyTheme(isDark) {
+      if (isDark) {
+        document.documentElement.style.setProperty('color-scheme', 'dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.style.setProperty('color-scheme', 'light');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+      localStorage.setItem('matoli.theme', isDark ? 'dark' : 'light');
+    }
+
+    if (dark) applyTheme(true);
+
+    btn.onclick = function() {
+      var isDark = localStorage.getItem('matoli.theme') === 'dark' || 
+                   (!localStorage.getItem('matoli.theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      applyTheme(!isDark);
+    };
   }
 
   function initControls() {
