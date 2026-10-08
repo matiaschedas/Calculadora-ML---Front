@@ -334,12 +334,12 @@
     });
     html += '</tbody></table></div>';
 
-    // Envío (Ejemplo)
-    html += '<div class="card"><h3>Costo de Envío (Ejemplo: Reputación Verde)</h3><div class="table-scroll"><table class="table"><thead><tr><th>Peso (kg)</th><th>Precio</th></tr></thead><tbody>';
-    D.envio.verde.slice(0, 5).forEach(function(row) {
-        html += '<tr><td>' + (row[0] ? row[0] + ' kg' : 'Más de 180 kg') + '</td><td>' + fmtMoney(row[1]) + '</td></tr>';
+    // Envío (Tablas completas)
+    html += '<div class="card"><h3>Costo de Envío (Reputaciones)</h3><div class="table-scroll"><table class="table small"><thead><tr><th>Peso (kg)</th><th>< $33k</th><th>$33k - $50k</th><th>> $50k</th></tr></thead><tbody>';
+    D.envio.verde.forEach(function(row) {
+        html += '<tr><td>' + (row[0] ? row[0] + ' kg' : 'Más de 180 kg') + '</td><td>' + fmtMoney(row[1]) + '</td><td>' + fmtMoney(row[2]) + '</td><td>' + fmtMoney(row[3]) + '</td></tr>';
     });
-    html += '</tbody></table></div><p class="hint">El costo de envío varía según reputación, categoría y peso. Los valores exactos se calculan automáticamente en la calculadora.</p></div>';
+    html += '</tbody></table></div></div>';
 
     // Full
     html += '<div class="card"><h3>Full · Almacenamiento</h3><table class="table"><thead><tr><th>Tamaño</th><th>Tarifa diaria</th></tr></thead><tbody>';
