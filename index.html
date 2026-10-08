@@ -161,7 +161,39 @@
           <div data-show="logistica=ml|full">
             <h3>Paquete (ya embalado)</h3>
             <div class="grid4">
-              <div class="field"><label for="f-peso">Peso (kg)</label><input id="f-peso" type="number" inputmode="decimal" min="0" step="any" data-f="peso" placeholder="0,5"></div>
+              <div class="field">
+                <label for="f-peso-presets">Peso del paquete</label>
+                <select id="f-peso-presets" data-f="peso">
+                  <option value="">Elegí un peso...</option>
+                  <option value="0.3">0.3 kg</option>
+                  <option value="0.5">0.5 kg</option>
+                  <option value="1">1 kg</option>
+                  <option value="1.5">1.5 kg</option>
+                  <option value="2">2 kg</option>
+                  <option value="3">3 kg</option>
+                  <option value="4">4 kg</option>
+                  <option value="5">5 kg</option>
+                  <option value="8">8 kg</option>
+                  <option value="10">10 kg</option>
+                  <option value="13">13 kg</option>
+                  <option value="15">15 kg</option>
+                  <option value="20">20 kg</option>
+                  <option value="25">25 kg</option>
+                  <option value="30">30 kg</option>
+                  <option value="40">40 kg</option>
+                  <option value="50">50 kg</option>
+                  <option value="60">60 kg</option>
+                  <option value="70">70 kg</option>
+                  <option value="80">80 kg</option>
+                  <option value="90">90 kg</option>
+                  <option value="100">100 kg</option>
+                  <option value="120">120 kg</option>
+                  <option value="140">140 kg</option>
+                  <option value="160">160 kg</option>
+                  <option value="180">180 kg</option>
+                  <option value="200">Más de 180 kg</option>
+                </select>
+              </div>
               <div class="field"><label for="f-largo">Largo (cm)</label><input id="f-largo" type="number" inputmode="decimal" min="0" step="any" data-f="largo" placeholder="0"></div>
               <div class="field"><label for="f-ancho">Ancho (cm)</label><input id="f-ancho" type="number" inputmode="decimal" min="0" step="any" data-f="ancho" placeholder="0"></div>
               <div class="field"><label for="f-alto">Alto (cm)</label><input id="f-alto" type="number" inputmode="decimal" min="0" step="any" data-f="alto" placeholder="0"></div>

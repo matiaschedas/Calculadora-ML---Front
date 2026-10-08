@@ -128,7 +128,12 @@ input:hover, select:hover { border-color: var(--muted); }
 .hint a { color: var(--primary); }
 .check { display: flex; gap: 9px; align-items: flex-start; font-weight: 500 !important; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin-top: 2px; flex: none; accent-color: var(--primary); }
-.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.btn-preset { 
+  appearance: none; border: 1px solid var(--border); background: var(--surface); 
+  padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--muted);
+}
+.btn-preset:hover { border-color: var(--accent); color: var(--accent); }
+.btn-preset.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
 .chip { appearance: none; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: 3px 10px; font: inherit; font-size: .78rem; cursor: pointer; }
 .chip:hover { border-color: var(--primary); color: var(--primary); }
 

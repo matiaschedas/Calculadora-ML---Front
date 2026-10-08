@@ -59,6 +59,37 @@
     }
   }
 
+  function actualizarPesoInfo() {
+    var p = num(state.peso);
+    var vol = (num(state.largo) * num(state.ancho) * num(state.alto)) / 4000;
+    var el = $('#peso-info');
+    if (!el) return;
+    
+    // Si no hay peso seleccionado, mostramos un mensaje
+    if (p === 0 && vol === 0) {
+      el.textContent = 'Seleccioná el peso o ingresá las dimensiones para calcular el envío.';
+      return;
+    }
+    
+    var facturable = Math.max(p, vol);
+    
+    var tramoTxt = "";
+    if (D && D.pesos) {
+      for (var i = 0; i < D.pesos.length; i++) {
+        if (D.pesos[i] === null || facturable <= D.pesos[i]) {
+          tramoTxt = D.pesos[i] ? "Tramo: hasta " + D.pesos[i] + " kg" : "Tramo: más de 180 kg";
+          break;
+        }
+      }
+    }
+
+    var html = 'Peso seleccionado: ' + (p > 0 ? p + ' kg' : '0 kg');
+    if (vol > 0) html += ' | Volumétrico: ' + vol.toFixed(2) + ' kg';
+    html += ' ➔ <strong>Facturable: ' + facturable.toFixed(2) + ' kg</strong>';
+    if (tramoTxt) html += ' <br><span class="badge">' + tramoTxt + '</span>';
+    el.innerHTML = html;
+  }
+
   /* --- Lógica de actualización --- */
   function renderLoading() {
     var h = $('#hero'); 
@@ -98,6 +129,7 @@
       else if (num(state.precio) > 0) res = await window.MatoliAPI.calcular(inp, state.precio);
       
       if (counter !== updateCounter) return;
+      actualizarPesoInfo();
       lastResult = res;
       renderApp(res);
     } catch (err) {
@@ -369,6 +401,7 @@
         renderCategoriaHint(null);
       }
       updateProfileWarning();
+      actualizarPesoInfo();
       update();
     } catch(e) { 
       var loader = document.getElementById('loader');
@@ -413,6 +446,7 @@
         
         saveJSON(STORE_STATE, state);
         updateProfileWarning();
+        actualizarPesoInfo();
         update();
       });
     });
@@ -431,6 +465,7 @@
       editingId = null;
       syncInputs();
       updateProfileWarning();
+      actualizarPesoInfo();
       update();
     };
     $('#mb-go').onclick = function() { $('#results').scrollIntoView({ behavior: 'smooth' }); };
@@ -505,7 +540,9 @@
   function applyVisibility() {
     $$('[data-show]').forEach(function(el) {
       var parts = el.dataset.show.split('=');
-      el.hidden = String(state[parts[0]]) !== parts[1];
+      var key = parts[0];
+      var possibleValues = parts[1].split('|');
+      el.hidden = possibleValues.indexOf(String(state[key])) === -1;
     });
   }
 
