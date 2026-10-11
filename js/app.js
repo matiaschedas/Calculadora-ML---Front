@@ -227,8 +227,15 @@
     if (isProfileAtDefaults()) {
       var n = document.createElement('div');
       n.className = 'note err';
-      n.textContent = '⚠️ Alerta de Seguridad: Tu perfil de vendedor no está configurado (tiene valores por defecto). Completá esta sección para obtener costos reales.';
+      n.innerHTML = '⚠️ Alerta de Seguridad: Tu perfil de vendedor no está configurado (tiene valores por defecto). <a href="#perfil" id="link-ir-perfil">Configurá tu perfil de vendedor</a> para obtener costos reales.';
       div.appendChild(n);
+      var link = $('#link-ir-perfil', n);
+      if (link) {
+        link.onclick = function(e) {
+          e.preventDefault();
+          switchTab('perfil');
+        };
+      }
     }
     if (!res) return;
     res.avisos.forEach(function(a) { 
@@ -288,7 +295,10 @@
     tbl.innerHTML = '<thead><tr><th>Producto</th><th>Precio</th><th>Ganancia</th><th>Acciones</th></tr></thead><tbody><tr><td colspan="4" style="text-align: center; padding: 20px;"><div class="spinner" style="margin: 0 auto; width: 30px; height: 30px; border-width: 3px;"></div></td></tr></tbody>';
 
     var rows = await Promise.all(productos.map(async function(p) {
-      var res = await window.MatoliAPI.calcular(Object.assign({}, state, p.campos), p.campos.precio);
+      var profileOverride = {};
+      PROFILE_KEYS.forEach(function(k) { profileOverride[k] = state[k]; });
+      var camposConPerfilActual = Object.assign({}, p.campos, profileOverride);
+      var res = await window.MatoliAPI.calcular(camposConPerfilActual, p.campos.precio);
       return { p: p, res: res };
     }));
 
@@ -405,6 +415,12 @@
       }
       updateProfileWarning();
       actualizarPesoInfo();
+      
+      var initialHash = location.hash.replace('#', '');
+      if (['calc', 'perfil', 'productos', 'tarifas'].indexOf(initialHash) !== -1) {
+        switchTab(initialHash, true);
+      }
+      
       update();
     } catch(e) { 
       var loader = document.getElementById('loader');
@@ -479,6 +495,16 @@
       });
     });
     $$('.tab').forEach(function(b) { b.onclick = function() { switchTab(b.dataset.tab); }; });
+    var btnIrCalc = $('#btn-ir-calc');
+    if (btnIrCalc) {
+      btnIrCalc.onclick = function() { switchTab('calc'); };
+    }
+    window.addEventListener('hashchange', function() {
+      var hash = location.hash.replace('#', '');
+      if (['calc', 'perfil', 'productos', 'tarifas'].indexOf(hash) !== -1) {
+        switchTab(hash, true);
+      }
+    });
     $('#btn-limpiar').onclick = function() {
       var savedProfile = loadJSON(STORE_PROFILE);
       var newState = Object.assign({}, DEFAULTS);

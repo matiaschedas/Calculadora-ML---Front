@@ -83,13 +83,13 @@ main { padding-top: 18px; padding-bottom: 90px; }
 /* ---------- Layout ---------- */
 .layout { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 980px) {
-  .layout { grid-template-columns: minmax(0, 1fr) 430px; }
-  .results { position: sticky; top: 112px; max-height: calc(100vh - 128px); overflow-y: auto; padding-right: 2px; }
+  .layout { grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; }
+  .results { position: sticky; top: 96px; align-self: start; }
 }
 .col-form { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 .results { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); transition: border-color 0.2s ease, box-shadow 0.2s ease; }
 .card.flat { box-shadow: none; }
 .card h2 { margin-bottom: 12px; }
 details.card > summary { cursor: pointer; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; list-style: none; }
@@ -121,8 +121,10 @@ input[type="text"], input[type="number"], input[type="search"], select {
 input::placeholder { color: var(--muted); opacity: .7; }
 input:hover, select:hover { border-color: var(--muted); }
 .money { display: flex; align-items: stretch; }
-.money > span { display: grid; place-items: center; padding: 0 11px; background: var(--surface-2); border: 1px solid var(--border); border-right: 0; border-radius: 9px 0 0 9px; color: var(--muted); font-weight: 600; }
+.money > span { display: grid; place-items: center; padding: 0 11px; background: var(--surface-2); border: 1px solid var(--border); border-right: 0; border-radius: 9px 0 0 9px; color: var(--muted); font-weight: 600; transition: background-color .2s, border-color .2s, color .2s; }
 .money > input { border-radius: 0 9px 9px 0; }
+.money:focus-within > span { background: var(--info-bg); border-color: var(--focus); color: var(--focus); }
+.money:focus-within > input { border-color: var(--focus); }
 .hint { color: var(--muted); font-size: .8rem; margin: 2px 0 0; }
 .hint a { color: var(--primary); }
 .check { display: flex; gap: 9px; align-items: flex-start; font-weight: 500 !important; cursor: pointer; }

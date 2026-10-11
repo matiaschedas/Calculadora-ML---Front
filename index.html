@@ -36,6 +36,7 @@
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Secciones">
     <button class="tab" role="tab" id="tabbtn-calc" aria-controls="tab-calc" aria-selected="true" data-tab="calc">Calculadora</button>
+    <button class="tab" role="tab" id="tabbtn-perfil" aria-controls="tab-perfil" aria-selected="false" data-tab="perfil">Perfil vendedor</button>
     <button class="tab" role="tab" id="tabbtn-productos" aria-controls="tab-productos" aria-selected="false" data-tab="productos">Mis productos <span class="count" id="count-productos">0</span></button>
     <button class="tab" role="tab" id="tabbtn-tarifas" aria-controls="tab-tarifas" aria-selected="false" data-tab="tarifas">Tarifas</button>
   </nav>
@@ -279,72 +280,6 @@
           <p class="hint">Tarifas de Link de pago, con todos los medios de pago. No incluyen IVA: se suma 21%.</p>
         </div>
 
-        <!-- ---------- Perfil ---------- -->
-        <details class="card profile" open>
-          <summary><h2>Tu perfil de vendedor</h2><span class="opt">se guarda en tu navegador</span></summary>
-          <div id="profile-warning" class="note warn" hidden>⚠️ Tu perfil de vendedor está con los valores por default. Sección no completa: configurá tus datos para obtener cálculos precisos.</div>
-          <div class="grid2">
-            <div class="field" data-show="canal=ml">
-              <label for="f-reputacion">Reputación</label>
-              <select id="f-reputacion" data-f="reputacion">
-                <option value="sinrep">Sin reputación (recién empezás)</option>
-                <option value="verde">MercadoLíder o verde</option>
-                <option value="amarilla">Amarilla</option>
-                <option value="roja">Naranja o roja</option>
-              </select>
-              <small class="hint">Define el descuento en el envío gratis y cuándo te liberan el dinero.</small>
-            </div>
-            <div class="field">
-              <label for="f-condFiscal">Condición fiscal</label>
-              <select id="f-condFiscal" data-f="condFiscal">
-                <option value="cf">Consumidor final (sin inscripción)</option>
-                <option value="mono">Monotributista</option>
-                <option value="ri">Responsable inscripto</option>
-              </select>
-              <small class="hint" data-show="condFiscal=cf">Mercado Libre no te retira impuestos mientras figures así. Si vendés seguido, consultá con un contador si te corresponde inscribirte.</small>
-            </div>
-            <div class="field" data-show="condFiscal=ri">
-              <label for="f-ivaProducto">IVA de tus productos</label>
-              <select id="f-ivaProducto" data-f="ivaProducto">
-                <option value="21">21%</option>
-                <option value="10.5">10,5%</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="f-iibb">Ingresos Brutos (%)</label>
-              <div class="money"><span>%</span><input id="f-iibb" type="number" inputmode="decimal" min="0" step="any" data-f="iibbPct"></div>
-              <small class="hint">Tu alícuota real (provincia y actividad). Mercado Libre la retiene como anticipo.</small>
-            </div>
-            <div class="field">
-              <label for="f-ads">Publicidad (% de la venta)</label>
-              <div class="money"><span>%</span><input id="f-ads" type="number" inputmode="decimal" min="0" step="any" data-f="adsPct"></div>
-              <small class="hint">Product Ads u otra publicidad.</small>
-            </div>
-            <div class="field">
-              <label for="f-otros">Devoluciones y otros (% de la venta)</label>
-              <div class="money"><span>%</span><input id="f-otros" type="number" inputmode="decimal" min="0" step="any" data-f="otrosPct"></div>
-              <small class="hint">Reclamos, devoluciones, comisiones de terceros.</small>
-            </div>
-            <div class="field">
-              <label for="f-fijoMes">Gastos fijos por mes</label>
-              <div class="money"><span>$</span><input id="f-fijoMes" type="number" inputmode="decimal" min="0" step="any" data-f="fijoMensual"></div>
-              <small class="hint">Cuota de monotributo, contador, alquiler, etc.</small>
-            </div>
-            <div class="field">
-              <label for="f-unidMes">Unidades que vendés por mes</label>
-              <input id="f-unidMes" type="number" inputmode="numeric" min="0" step="1" data-f="unidadesMes">
-              <small class="hint" id="hint-fijos"></small>
-            </div>
-            <div class="field full">
-              <label class="check"><input type="checkbox" data-f="credDeb"> <span>Pago el impuesto a los créditos y débitos (personas jurídicas, 1,2%)</span></label>
-            </div>
-            <div class="field full" data-show="canal=ml">
-              <label class="check"><input type="checkbox" data-f="ivaIncluido"> <span>Los cargos de Mercado Libre ya incluyen IVA</span></label>
-              <small class="hint">Verificado en el <a href="https://www.mercadolibre.com.ar/simulador-de-costos" target="_blank" rel="noopener">Simulador de costos</a> oficial: Mercado Libre descuenta exactamente el porcentaje publicado, sin sumar IVA aparte. Destildá la opción solo si tu factura te muestra un IVA adicional sobre los cargos.</small>
-            </div>
-          </div>
-        </details>
-
       </div>
 
       <!-- ============================ RESULTADOS ============================ -->
@@ -365,6 +300,82 @@
           <div class="table-scroll"><table class="table small" id="escenarios"></table></div>
         </div>
       </aside>
+    </div>
+  </section>
+
+  <!-- ============================ PERFIL VENDEDOR ============================ -->
+  <section id="tab-perfil" class="tabpanel" role="tabpanel" aria-labelledby="tabbtn-perfil" hidden>
+    <div class="card">
+      <div class="row-between">
+        <div>
+          <h2>Perfil de vendedor</h2>
+          <p class="hint">Configuración fiscal, reputación y costos de tu cuenta. Se guarda en este navegador y se aplica automáticamente a todos los cálculos.</p>
+        </div>
+      </div>
+      <div id="profile-warning" class="note warn" hidden>⚠️ Tu perfil de vendedor está con los valores por default. Sección no completa: configurá tus datos para obtener cálculos precisos.</div>
+      <div class="grid2">
+        <div class="field">
+          <label for="f-reputacion">Reputación en Mercado Libre</label>
+          <select id="f-reputacion" data-f="reputacion">
+            <option value="sinrep">Sin reputación (recién empezás)</option>
+            <option value="verde">MercadoLíder o verde</option>
+            <option value="amarilla">Amarilla</option>
+            <option value="roja">Naranja o roja</option>
+          </select>
+          <small class="hint">Define el descuento en el envío gratis y cuándo te liberan el dinero.</small>
+        </div>
+        <div class="field">
+          <label for="f-condFiscal">Condición fiscal</label>
+          <select id="f-condFiscal" data-f="condFiscal">
+            <option value="cf">Consumidor final (sin inscripción)</option>
+            <option value="mono">Monotributista</option>
+            <option value="ri">Responsable inscripto</option>
+          </select>
+          <small class="hint" data-show="condFiscal=cf">Mercado Libre no te retira impuestos mientras figures así. Si vendés seguido, consultá con un contador si te corresponde inscribirte.</small>
+        </div>
+        <div class="field" data-show="condFiscal=ri">
+          <label for="f-ivaProducto">IVA de tus productos</label>
+          <select id="f-ivaProducto" data-f="ivaProducto">
+            <option value="21">21%</option>
+            <option value="10.5">10,5%</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-iibb">Ingresos Brutos (%)</label>
+          <div class="money"><span>%</span><input id="f-iibb" type="number" inputmode="decimal" min="0" step="any" data-f="iibbPct"></div>
+          <small class="hint">Tu alícuota real (provincia y actividad). Mercado Libre la retiene como anticipo.</small>
+        </div>
+        <div class="field">
+          <label for="f-ads">Publicidad (% de la venta)</label>
+          <div class="money"><span>%</span><input id="f-ads" type="number" inputmode="decimal" min="0" step="any" data-f="adsPct"></div>
+          <small class="hint">Product Ads u otra publicidad.</small>
+        </div>
+        <div class="field">
+          <label for="f-otros">Devoluciones y otros (% de la venta)</label>
+          <div class="money"><span>%</span><input id="f-otros" type="number" inputmode="decimal" min="0" step="any" data-f="otrosPct"></div>
+          <small class="hint">Reclamos, devoluciones, comisiones de terceros.</small>
+        </div>
+        <div class="field">
+          <label for="f-fijoMes">Gastos fijos por mes</label>
+          <div class="money"><span>$</span><input id="f-fijoMes" type="number" inputmode="decimal" min="0" step="any" data-f="fijoMensual"></div>
+          <small class="hint">Cuota de monotributo, contador, alquiler, etc.</small>
+        </div>
+        <div class="field">
+          <label for="f-unidMes">Unidades que vendés por mes</label>
+          <input id="f-unidMes" type="number" inputmode="numeric" min="0" step="1" data-f="unidadesMes">
+          <small class="hint" id="hint-fijos"></small>
+        </div>
+        <div class="field full">
+          <label class="check"><input type="checkbox" data-f="credDeb"> <span>Pago el impuesto a los créditos y débitos (personas jurídicas, 1,2%)</span></label>
+        </div>
+        <div class="field full">
+          <label class="check"><input type="checkbox" data-f="ivaIncluido"> <span>Los cargos de Mercado Libre ya incluyen IVA</span></label>
+          <small class="hint">Verificado en el <a href="https://www.mercadolibre.com.ar/simulador-de-costos" target="_blank" rel="noopener">Simulador de costos</a> oficial: Mercado Libre descuenta exactamente el porcentaje publicado, sin sumar IVA aparte. Destildá la opción solo si tu factura te muestra un IVA adicional sobre los cargos.</small>
+        </div>
+      </div>
+      <div style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" class="btn primary" id="btn-ir-calc">Ir a la Calculadora</button>
+      </div>
     </div>
   </section>
 
