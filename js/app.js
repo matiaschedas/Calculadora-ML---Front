@@ -372,6 +372,17 @@
 
   /* --- Inicialización --- */
   async function init() {
+    // Inicializar tema siempre
+    initTheme();
+
+    // Verificar sesión antes de inicializar nada
+    var token = localStorage.getItem('matoli.token');
+    if (!token) {
+      document.getElementById('loader').style.display = 'none';
+      initLogin();
+      return;
+    }
+
     try {
       // Intentar despertar al backend primero
       try {
@@ -379,15 +390,16 @@
         await fetch(window.MatoliAPI.getBaseUrl() + '/wake');
       } catch (e) { console.log("Error al despertar:", e); }
       
-      // Inicializar tema
-      initTheme();
-
       // Ocultar el loader
       var loader = document.getElementById('loader');
       if (loader) loader.style.display = 'none';
 
+      // Verificar token
+      await window.MatoliAPI.verifyToken();
+
       D = await window.MatoliAPI.getTarifas();
       initControls();
+
 
       // Cargar estado previo y aplicar perfil guardado
       var savedState = loadJSON(STORE_STATE);
@@ -429,6 +441,59 @@
     }
   }
 
+  function initLogin() {
+    var overlay = document.getElementById('login-overlay');
+    if (overlay) overlay.style.display = 'flex';
+
+    var logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) logoutBtn.style.display = 'none';
+
+    var form = $('#login-form');
+    if (form) {
+      form.onsubmit = async function(e) {
+        e.preventDefault();
+        var user = $('#login-user').value;
+        var pass = $('#login-pass').value;
+        var errEl = $('#login-error');
+        var submitBtn = $('#btn-login');
+        
+        try {
+          errEl.hidden = true;
+          submitBtn.textContent = 'Ingresando...';
+          submitBtn.disabled = true;
+
+          await window.MatoliAPI.login(user, pass);
+          
+          if (overlay) overlay.style.display = 'none';
+          if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+          
+          submitBtn.textContent = 'Iniciar sesión';
+          submitBtn.disabled = false;
+          
+          init(); // Reiniciar inicialización completa
+        } catch (err) {
+          errEl.textContent = err.message || 'Usuario o contraseña incorrectos';
+          errEl.hidden = false;
+          submitBtn.textContent = 'Iniciar sesión';
+          submitBtn.disabled = false;
+        }
+      };
+    }
+  }
+
+  // Configurar handler global para 401 Unauthorized
+  window.onMatoliUnauthorized = function() {
+    var overlay = document.getElementById('login-overlay');
+    if (overlay) overlay.style.display = 'flex';
+    var logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    var errEl = $('#login-error');
+    if (errEl) {
+      errEl.textContent = 'Sesión expirada o no autorizada. Por favor, ingresá de nuevo.';
+      errEl.hidden = false;
+    }
+  };
+
   function initTheme() {
     var btn = $('#btn-theme');
     var dark = localStorage.getItem('matoli.theme') === 'dark' || 
@@ -447,11 +512,22 @@
 
     if (dark) applyTheme(true);
 
-    btn.onclick = function() {
-      var isDark = localStorage.getItem('matoli.theme') === 'dark' || 
-                   (!localStorage.getItem('matoli.theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      applyTheme(!isDark);
-    };
+    if (btn) {
+      btn.onclick = function() {
+        var isDark = localStorage.getItem('matoli.theme') === 'dark' || 
+                     (!localStorage.getItem('matoli.theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        applyTheme(!isDark);
+      };
+    }
+
+    var logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn && window.MatoliAPI.isAuthenticated()) {
+      logoutBtn.style.display = 'inline-flex';
+      logoutBtn.onclick = function() {
+        window.MatoliAPI.logout();
+        window.location.reload();
+      };
+    }
   }
 
   function initControls() {

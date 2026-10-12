@@ -20,7 +20,32 @@
   <div class="spinner"></div>
 </div>
 
+<div id="login-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+  <div class="card" style="width: 100%; max-width: 420px; box-shadow: var(--shadow);">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+      <span class="brand-mark" aria-hidden="true" style="width: 40px; height: 40px;">M</span>
+      <div>
+        <h2 style="margin: 0; font-size: 1.2rem;">Acceso a MATOLI</h2>
+        <span class="hint">Calculadora de costos · Mercado Libre</span>
+      </div>
+    </div>
+    <form id="login-form">
+      <div class="field">
+        <label for="login-user">Usuario</label>
+        <input id="login-user" type="text" autocomplete="username" required placeholder="admin">
+      </div>
+      <div class="field mt">
+        <label for="login-pass">Contraseña</label>
+        <input id="login-pass" type="password" autocomplete="current-password" required placeholder="••••••••">
+      </div>
+      <p id="login-error" class="note err" style="margin-top: 14px;" hidden></p>
+      <button type="submit" class="btn primary mt2" style="width: 100%;" id="btn-login">Iniciar sesión</button>
+    </form>
+  </div>
+</div>
+
 <header class="topbar">
+
   <div class="wrap topbar-inner">
     <div class="brand">
       <span class="brand-mark" aria-hidden="true">M</span>
@@ -32,6 +57,7 @@
     <div style="display: flex; align-items: center; gap: 8px;">
       <button type="button" class="btn small" id="btn-theme" title="Cambiar tema">🌓</button>
       <span class="badge" title="Fecha de la última verificación de tarifas contra las páginas oficiales">Tarifas al <span id="vigencia"></span></span>
+      <button type="button" class="btn small" id="btn-logout" title="Cerrar sesión" style="display: none;">Salir</button>
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Secciones">

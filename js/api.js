@@ -4,8 +4,8 @@
  * Este cliente abstrae todas las llamadas al backend de .NET para que
  * el resto de la interfaz (app.js) interactúe con él de forma transparente.
  * 
- * Además, implementa almacenamiento local en caché de las categorías y las tarifas
- * para un rendimiento óptimo e instantáneo tras la primera carga.
+ * Además, implementa autenticación JWT y almacenamiento local en caché de 
+ * las categorías y las tarifas para un rendimiento óptimo.
  */
 
 window.MatoliAPI = (function () {
@@ -16,6 +16,12 @@ window.MatoliAPI = (function () {
     ? 'http://localhost:5191/api'
     : 'https://calculadora-ml-back.onrender.com/api';
 
+  var cache = {
+    tarifas: null,
+    buscarCategorias: {},
+    categoriasPorId: {}
+  };
+
   function request(endpoint, method, body) {
     var options = {
       method: method || 'GET',
@@ -23,6 +29,13 @@ window.MatoliAPI = (function () {
         'Content-Type': 'application/json'
       }
     };
+    
+    // Añadir token si existe
+    var token = localStorage.getItem('matoli.token');
+    if (token) {
+      options.headers['Authorization'] = 'Bearer ' + token;
+    }
+
     if (body) {
       options.body = JSON.stringify(body);
     }
@@ -31,21 +44,30 @@ window.MatoliAPI = (function () {
       .then(function (res) {
         if (!res.ok) {
           return res.json().then(function (err) {
-            throw new Error(err.error || 'Ocurrió un error en la solicitud.');
-          }).catch(function () {
+            // Si es 401 en cualquier endpoint que no sea login, limpiar sesión
+            if (res.status === 401 && endpoint !== '/auth/login') {
+              localStorage.removeItem('matoli.token');
+              localStorage.removeItem('matoli.user');
+              if (window.onMatoliUnauthorized) {
+                window.onMatoliUnauthorized();
+              }
+            }
+            throw new Error(err.error || (res.status === 401 ? 'Credenciales incorrectas o sesión no autorizada' : 'Ocurrió un error en la solicitud.'));
+          }).catch(function (e) {
+            if (e.message) throw e;
+            if (res.status === 401 && endpoint !== '/auth/login') {
+              localStorage.removeItem('matoli.token');
+              localStorage.removeItem('matoli.user');
+              if (window.onMatoliUnauthorized) {
+                window.onMatoliUnauthorized();
+              }
+            }
             throw new Error('Error ' + res.status + ' en el servidor backend.');
           });
         }
         return res.json();
       });
   }
-
-  // Caché en memoria para optimizar búsquedas de categorías recurrentes y las tarifas generales
-  var cache = {
-    tarifas: null,
-    buscarCategorias: {},
-    categoriasPorId: {}
-  };
 
   return {
     setBaseUrl: function (url) {
@@ -54,6 +76,42 @@ window.MatoliAPI = (function () {
 
     getBaseUrl: function () {
       return API_BASE;
+    },
+
+    /* --- Auth --- */
+    login: function (username, password) {
+      return request('/auth/login', 'POST', { username: username, password: password })
+        .then(function (data) {
+          if (data && data.token) {
+            localStorage.setItem('matoli.token', data.token);
+            localStorage.setItem('matoli.user', data.username || username);
+          }
+          return data;
+        });
+    },
+
+    verifyToken: function () {
+      return request('/auth/verify');
+    },
+
+    logout: function () {
+      localStorage.removeItem('matoli.token');
+      localStorage.removeItem('matoli.user');
+      cache.tarifas = null;
+      cache.buscarCategorias = {};
+      cache.categoriasPorId = {};
+    },
+
+    getToken: function () {
+      return localStorage.getItem('matoli.token');
+    },
+
+    getUser: function () {
+      return localStorage.getItem('matoli.user') || 'admin';
+    },
+
+    isAuthenticated: function () {
+      return !!localStorage.getItem('matoli.token');
     },
 
     /* --- Tarifas --- */
