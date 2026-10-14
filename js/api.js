@@ -78,6 +78,20 @@ window.MatoliAPI = (function () {
       return API_BASE;
     },
 
+    /* --- Wake Up --- */
+    wake: async function (retries = 10, delay = 3000) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const res = await fetch(API_BASE + '/wake');
+          if (res.ok) return true;
+        } catch (e) {
+          console.warn(`Intento ${i + 1} de despertar fallido.`);
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      throw new Error("No se pudo despertar el backend.");
+    },
+
     /* --- Auth --- */
     login: function (username, password) {
       return request('/auth/login', 'POST', { username: username, password: password })

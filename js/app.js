@@ -384,14 +384,13 @@
     }
 
     try {
-      // Intentar despertar al backend primero
-      try {
-        console.log("Intentando despertar backend en:", window.MatoliAPI.getBaseUrl());
-        await fetch(window.MatoliAPI.getBaseUrl() + '/wake');
-      } catch (e) { console.log("Error al despertar:", e); }
+      // Intentar despertar al backend con feedback al usuario
+      var loader = document.getElementById('loader');
+      if (loader) loader.innerHTML = '<h1>Despertando el servidor...</h1><div class="spinner"></div><p style="margin-top:10px">Esto puede tardar hasta un minuto.</p>';
+      
+      await window.MatoliAPI.wake();
       
       // Ocultar el loader
-      var loader = document.getElementById('loader');
       if (loader) loader.style.display = 'none';
 
       // Verificar token
